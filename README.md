@@ -28,4 +28,5 @@ This installation assumes that you have ROS installed on your system.
 
 # Usage
 
-wahoo !
+`roslaunch arctos_ik ik_test.launch`
+
