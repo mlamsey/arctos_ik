@@ -1,0 +1,12 @@
+<launch>
+  <arg name="model" default="$(find ruxonros2_description)/urdf/ruxonros2.xacro"/>
+  <arg name="gui" default="true"/>
+  <arg name="rvizconfig" default="$(find ruxonros2_description)/launch/workspace_vis.rviz"/>
+  <param name="robot_description" command="$(find xacro)/xacro $(arg model)"/>
+  <param name="use_gui" value="$(arg gui)"/>
+  <node name="joint_state_publisher" pkg="arctos_ik" type="idle_joint_state_publisher.py" output="screen"/>
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+  <node name="static_tf" pkg="arctos_ik" type="static_tf.py"/>
+  <node name="workspace_visualization" pkg="arctos_ik" type="workspace_markers.py" output="screen"/>
+  <node name="rviz" pkg="rviz" args="-d $(arg rvizconfig)" type="rviz" required="true"/>
+</launch>
