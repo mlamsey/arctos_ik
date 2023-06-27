@@ -2,6 +2,9 @@ import numpy as np
 import multiprocessing
 from typing import List, Callable
 
+############################################################
+# Methods
+############################################################
 def fibonacci_sphere(samples=1) -> np.ndarray:
     """
     Generate points on a sphere using the Fibonacci spiral method.
@@ -41,6 +44,18 @@ def generate_rotation_matrix_from_z_axis(z_axis) -> np.ndarray:
     return np.vstack((x_axis, y_axis, z_axis)).T
 
 def xyz_meshgrid(xlim, ylim, zlim, n_x=10, n_y=10, n_z=10) -> np.ndarray:
+    """
+    Creates a meshgrid of points in 3D space
+    Inputs: xlim - 1x2 np array x-axis limits
+            ylim - 1x2 np array y-axis limits
+            zlim - 1x2 np array z-axis limits
+            n_x - int number of points in x-axis
+            n_y - int number of points in y-axis
+            n_z - int number of points in z-axis
+    Output: xyz_points - nx3 np array of points
+            (n = n_x * n_y * n_z)
+    """
+
     x_points = np.linspace(xlim[0], xlim[1], n_x)
     y_points = np.linspace(ylim[0], ylim[1], n_y)
     z_points = np.linspace(zlim[0], zlim[1], n_z)
@@ -48,6 +63,77 @@ def xyz_meshgrid(xlim, ylim, zlim, n_x=10, n_y=10, n_z=10) -> np.ndarray:
     xyz_points = np.vstack((X.flatten(), Y.flatten(), Z.flatten())).T
     return xyz_points
 
+def quaternion_angular_distance(u, v) -> float:
+    """
+    Computes the angular distance between two quaternions
+    Quaternion format: [w, x, y, z]
+    Inputs: u - 1x4 np array quaternion
+            v - 1x4 np array quaternion
+    Output: angular_distance - float angular distance in radianss
+    """
+
+    # Ensure u and v are numpy arrays
+    u = np.array(u)
+    v = np.array(v)
+    
+    # Compute the dot product of the two quaternions
+    dot_product = np.dot(u, v)
+    
+    # Compute the angular distance in radians
+    angular_distance = 2 * np.arccos(np.abs(dot_product))
+    
+    return angular_distance
+
+def rotation_matrix_to_quaternion(R):
+    """
+    Convert a 3x3 rotation matrix to a quaternion.
+    
+    Inputs: R: 3x3 rotation matrix
+    Outputs: Quaternion as [w, x, y, z]
+    """
+    # Ensure R is a numpy array
+    R = np.array(R)
+    
+    # Compute the trace of the matrix
+    trace = np.trace(R)
+    
+    # Depending on the trace, calculate the quaternion components
+    if trace > 0:
+        w = np.sqrt(1 + trace) / 2
+        x = (R[2, 1] - R[1, 2]) / (4 * w)
+        y = (R[0, 2] - R[2, 0]) / (4 * w)
+        z = (R[1, 0] - R[0, 1]) / (4 * w)
+    else:
+        # Find the index of the largest diagonal element
+        d = np.diagonal(R)
+        max_diag_index = np.argmax(d)
+        
+        # Compute quaternion components depending on the index
+        if max_diag_index == 0:
+            S = 2 * np.sqrt(1 + R[0, 0] - R[1, 1] - R[2, 2])
+            w = (R[2, 1] - R[1, 2]) / S
+            x = 0.25 * S
+            y = (R[0, 1] + R[1, 0]) / S
+            z = (R[0, 2] + R[2, 0]) / S
+        elif max_diag_index == 1:
+            S = 2 * np.sqrt(1 + R[1, 1] - R[0, 0] - R[2, 2])
+            w = (R[0, 2] - R[2, 0]) / S
+            x = (R[0, 1] + R[1, 0]) / S
+            y = 0.25 * S
+            z = (R[1, 2] + R[2, 1]) / S
+        else:
+            S = 2 * np.sqrt(1 + R[2, 2] - R[0, 0] - R[1, 1])
+            w = (R[1, 0] - R[0, 1]) / S
+            x = (R[0, 2] + R[2, 0]) / S
+            y = (R[1, 2] + R[2, 1]) / S
+            z = 0.25 * S
+    
+    # Return quaternion
+    return [w, x, y, z]
+
+############################################################
+# Objects
+############################################################
 class ParallelProcess:
     def __init__(self):
         self.result_map = {}
@@ -106,3 +192,19 @@ class ParallelProcess:
         assert len(results) == len(inputs)
         results = sorted(results, key=lambda x: x[0])
         return list(results)
+    
+if __name__ == '__main__':
+    # Test rotation computations
+    R1 = [[0, -1, 0],
+        [1, 0, 0],
+        [0, 0, 1]]
+
+    R2 = [[1, 0, 0],
+        [0, 1, 0],
+        [0, 0, 1]]
+
+    q1 = rotation_matrix_to_quaternion(R1)
+    q2 = rotation_matrix_to_quaternion(R2)
+
+    print(quaternion_angular_distance(q1, q2))
+    

@@ -29,6 +29,10 @@ class WorkspaceMarkerBroadcaster:
         self.workspace_marker_publisher = rospy.Publisher('workspace_markers', MarkerArray, queue_size=10)
 
     def load_workspace_markers(self, csv_file_path) -> None:
+        """
+        Loads the workspace markers from a csv file
+        """
+
         try:
             # load csv
             reader = csv.reader(open(csv_file_path, newline=''), delimiter=',')
@@ -52,6 +56,11 @@ class WorkspaceMarkerBroadcaster:
         self.workspace_data = points
 
     def make_workspace_marker_array(self) -> MarkerArray:
+        """
+        Creates a MarkerArray message from the workspace data
+        Output: MarkerArray message
+        """
+        
         # config
         marker_size = 0.05
         n_orientations = 100.
