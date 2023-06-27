@@ -3,6 +3,7 @@ import ikpy.urdf.utils
 import ikpy.chain
 import rospkg
 from typing import Tuple
+from utils import quaternion_angular_distance, rotation_matrix_to_quaternion
 
 class ArctosIK:
     def __init__(self) -> None:
@@ -48,15 +49,16 @@ class ArctosIK:
         
         return np.array(pose)
 
-    def ik(self, target_position: np.ndarray, target_orientation: np.ndarray=np.eye(3), initial_guess=None, error_threshold=0.05) -> Tuple:
+    def ik(self, target_position: np.ndarray, target_orientation: np.ndarray=np.eye(3), initial_guess=None, pos_error_threshold=0.05, ori_error_threshold=0.05) -> Tuple:
         """
         Computes the IK solution for a given target configuration
         Inputs: target_position: 1x3 np array XYZ coordinate (meters)
                 target_orientation: 3x3 np array rotation matrix (unitless)
                 initial_guess: 1x6 np array initial guess for IK solver (radians)
-                error_threshold: float maximum error allowed for IK solution (meters)
+                pos_error_threshold: float maximum error allowed for IK solution (meters)
+                ori_error_threshold: float maximum error allowed for IK solution (radians)
         Outputs: q_soln: 1x6 np array joint angles (radians)
-                 error: float error between target and solution (meters)
+                 errors: tuple of position and orientation errors
 
         NOTE: you can change the guessing method by changing the initial_guess behavior below
         """
@@ -76,13 +78,24 @@ class ArctosIK:
                                                   initial_position=initial_guess,
                                                   max_iter=100,)
 
-        # calculate error
-        solution_fk_position = self.ik_chain.forward_kinematics(q_soln)[:3, 3]
-        error = np.linalg.norm(solution_fk_position - target_position)
+        # calculate errors
+        solution_fk = self.ik_chain.forward_kinematics(q_soln)
+
+        solution_fk_position = solution_fk[:3, 3]
+        position_error = np.linalg.norm(solution_fk_position - target_position)
+
+        solution_fk_orientation = solution_fk[:3, :3]
+        q1 = rotation_matrix_to_quaternion(solution_fk_orientation)
+        q2 = rotation_matrix_to_quaternion(target_orientation)
+        orientation_error = quaternion_angular_distance(q1, q2)
 
         # if error is too large, return zeros
-        if error > error_threshold:
-            print(f"ArctosIK::ik: Error {error} too large, returning zeros")
+        if position_error > pos_error_threshold:
+            print(f"ArctosIK::ik: Position error {position_error} too large, returning zeros")
+            q_soln = [0.] * 7
+        
+        if orientation_error > ori_error_threshold:
+            print(f"ArctosIK::ik: Orientation error {orientation_error} too large, returning zeros")
             q_soln = [0.] * 7
 
-        return q_soln[1:], error
+        return q_soln[1:], (position_error, orientation_error)
