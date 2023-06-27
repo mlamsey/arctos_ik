@@ -1,7 +1,7 @@
 <launch>
   <arg name="model" default="$(find ruxonros2_description)/urdf/ruxonros2.xacro"/>
   <arg name="gui" default="true"/>
-  <arg name="rvizconfig" default="$(find ruxonros2_description)/launch/urdf.rviz"/>
+  <arg name="rvizconfig" default="$(find arctos_ik)/rviz/urdf.rviz"/>
   <param name="robot_description" command="$(find xacro)/xacro $(arg model)"/>
   <param name="use_gui" value="$(arg gui)"/>
   <node name="joint_state_publisher" pkg="arctos_ik" type="ik_test.py" output="screen"/>

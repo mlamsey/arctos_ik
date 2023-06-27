@@ -3,7 +3,7 @@ import ikpy.urdf.utils
 import ikpy.chain
 import rospkg
 from typing import Tuple
-from utils import quaternion_angular_distance, rotation_matrix_to_quaternion
+from arctos_ik.utils import quaternion_angular_distance, rotation_matrix_to_quaternion
 
 class ArctosIK:
     def __init__(self) -> None:
