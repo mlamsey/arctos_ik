@@ -59,16 +59,49 @@ def get_number_of_reachable_orientations_at_point(ik_object: ArctosIK, position,
 
     return n_valid_orientations
 
-def xy_plane_workspace(z=0.3, filename="parallel_xy_plane_workspace.csv"):
+def parallel_reachability(points, n_orientation_vectors=100, n_yaws=20, n_parallel_workers=12):
     """
-    Computes the reachability map for an XY plane at a given Z coordinate
-    Inputs: z: float Z coordinate (meters)
-            filename: str filename to save data to
+    Computes the reachability scores for a given set of points (uses parallel processing)
+    Inputs: points: Nx3 np array XYZ coordinates (meters)
+            n_orientation_vectors: int number of orientation vectors to test
+            (sampled from a fibonacci sphere)
+            n_yaws: int number of yaw angles to test
+    Outputs: scores: list of reachability scores
     """
 
-    # config
-    n_orientations = 100
+    # init
+    parallel_process = ParallelProcess()
+    ik_object = ArctosIK()
+
+    def parallel_operation(idx, position):
+        result = get_number_of_reachable_orientations_at_point(ik_object,
+                                                               position,
+                                                               n_orientation_vectors=n_orientation_vectors,
+                                                               n_yaws=n_yaws,
+                                                               initial_configuration=np.zeros(6))
+        print_green(f"Point {idx}: {position} has {result} valid orientations")
+        return result
     
+    results = parallel_process.start(
+        callback=parallel_operation,
+        inputs=points,
+        num_workers=n_parallel_workers
+    )
+
+    scores = [r[1] for r in results]
+
+    return scores
+
+def workspace_reachability(points, n_orientations=100, filename="workspace.csv"):
+    """
+    Computes the reachability scores for a given set of points
+    Inputs: points: Nx3 np array XYZ coordinates (meters)
+            n_orientations: int number of orientation vectors to test
+            (sampled from a fibonacci sphere)
+            filename: str filename to save data to
+    Outputs: None
+    """
+
     # init file i/o
     try:
         f = csv.writer(open(filename, "x"), delimiter=',')
@@ -77,37 +110,70 @@ def xy_plane_workspace(z=0.3, filename="parallel_xy_plane_workspace.csv"):
         print(e)
         return
     
-    # init ik stuff
-    ik_object = ArctosIK()
-    points = xyz_meshgrid(
-        xlim=[0., 0.75],  # symmetry about y axis
-        ylim=[-0.75, 0.75],
-        zlim=[z, z],
-        n_x=25,  # 25
-        n_y=50,  # 50
-        n_z=1
-    )
-
-    # parallel process
-    parallel_process = ParallelProcess()
-
-    def parallel_operation(idx, position):
-        # print_green(f"Point {idx}")
-        # ik_object = ArctosIK()
-        result = get_number_of_reachable_orientations_at_point(ik_object, position, n_orientation_vectors=n_orientations, n_yaws=20, initial_configuration=np.zeros(6))
-        print_green(f"Point {idx}: {position} has {result} valid orientations")
-        return result
-    
-    results = parallel_process.start(
-        callback=parallel_operation,
-        inputs=points,
-        num_workers=12
-    )
-
-    scores = [r[1] for r in results]
+    # compute scores and write to file
+    scores = parallel_reachability(points, n_orientation_vectors=n_orientations, n_yaws=20)
 
     for position, score in zip(points, scores):
         f.writerow([position[0], position[1], position[2], score])
 
+def xy_plane_workspace(z=0.3, n_orientations=100, filename="parallel_xy_plane_workspace.csv"):
+    """
+    Computes the reachability map for an XY plane at a given Z coordinate
+    Inputs: z: float Z coordinate (meters)
+            filename: str filename to save data to
+    """
+    
+    # workspace points
+    points = xyz_meshgrid(
+        xlim=[0., 0.75],  # symmetry about y axis
+        ylim=[-0.75, 0.75],
+        zlim=[z, z],
+        n_x=25,
+        n_y=50,
+        n_z=1
+    )
+
+    workspace_reachability(points, n_orientations=n_orientations, filename=filename)
+
+def xz_plane_workspace(y=0., n_orientations=100, filename="parallel_xz_plane_workspace.csv"):
+    """
+    Computes the reachability map for an XY plane at a given Z coordinate
+    Inputs: z: float Z coordinate (meters)
+            filename: str filename to save data to
+    """
+
+    # init ik stuff
+    points = xyz_meshgrid(
+        xlim=[0, 0.75],  # symmetry about y axis
+        ylim=[y, y],
+        zlim=[-0.5, 1.],
+        n_x=25,
+        n_y=1,
+        n_z=50
+    )
+
+    workspace_reachability(points, n_orientations=n_orientations, filename=filename)
+
+def yz_plane_workspace(x=0., n_orientations=100, filename="parallel_yz_workspace.csv"):
+    """
+    Computes the reachability map for an XY plane at a given Z coordinate
+    Inputs: z: float Z coordinate (meters)
+            filename: str filename to save data to
+    """
+
+    # init ik stuff
+    points = xyz_meshgrid(
+        xlim=[x, x],  # symmetry about y axis
+        ylim=[-0.75, 0.75],
+        zlim=[-0.5, 1.],
+        n_x=1,
+        n_y=50,
+        n_z=50
+    )
+
+    workspace_reachability(points, n_orientations=n_orientations, filename=filename)
+
 if __name__ == '__main__':
-    xy_plane_workspace()
+    # xy_plane_workspace()
+    # xz_plane_workspace()
+    yz_plane_workspace()

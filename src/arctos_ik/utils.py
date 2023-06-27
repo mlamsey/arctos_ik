@@ -34,10 +34,12 @@ def generate_rotation_matrix_from_z_axis(z_axis) -> np.ndarray:
     The rotation about the z-axis is arbitrary
     Input: z_axis - 3x1 np array
     Output: R - 3x3 np array rotation matrix
+    TODO: check if right handed
     """
+    # x_axis = np.array([z_axis[1], -z_axis[0], 0])
 
     z_axis = z_axis / np.linalg.norm(z_axis)
-    x_axis = np.array([z_axis[1], -z_axis[0], 0])
+    x_axis = np.random.rand(3)
     x_axis = x_axis / np.linalg.norm(x_axis)
     y_axis = np.cross(z_axis, x_axis)
     y_axis = y_axis / np.linalg.norm(y_axis)
@@ -80,7 +82,10 @@ def quaternion_angular_distance(u, v) -> float:
     dot_product = np.dot(u, v)
     
     # Compute the angular distance in radians
-    angular_distance = 2 * np.arccos(np.abs(dot_product))
+    if np.abs(dot_product) > 1:
+        angular_distance = np.pi
+    else:
+        angular_distance = 2 * np.arccos(np.abs(dot_product))
     
     return angular_distance
 
@@ -194,17 +199,52 @@ class ParallelProcess:
         return list(results)
     
 if __name__ == '__main__':
-    # Test rotation computations
-    R1 = [[0, -1, 0],
-        [1, 0, 0],
-        [0, 0, 1]]
+    # Test Z axis thing
+    for _ in range(100):
+        z_axis = np.random.randn(3)
+        R = generate_rotation_matrix_from_z_axis(z_axis)
+        d0 = np.dot(R[:, 0], R[:, 1])
+        d1 = np.dot(R[:, 0], R[:, 2])
+        d2 = np.dot(R[:, 1], R[:, 2])
+        if d0 < 10.e9 and d1 < 10.e9 and d2 < 10.e9:
+            print("Orthogonal")
+        else:
+            print("Not orthogonal")
+            print(d0)
+            print(d1)
+            print(d2)
+            print(R)
+            print(z_axis)
+            
+    # R = generate_rotation_matrix_from_z_axis(np.array([1., 0., 1.]))
+    # print(R)
+    # # print(R[:, 0])
+    # print(np.dot(R[:, 0], R[:, 1]))
+    # print(np.dot(R[:, 0], R[:, 2]))
+    # print(np.dot(R[:, 1], R[:, 2]))
 
-    R2 = [[1, 0, 0],
-        [0, 1, 0],
-        [0, 0, 1]]
+    # # Test Fibonacci sphere
+    # import matplotlib.pyplot as plt
+    # import matplotlib
+    # matplotlib.use('TkAgg')
+    # from mpl_toolkits.mplot3d import Axes3D
+    # orientation_points = fibonacci_sphere(100)
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111, projection='3d')
+    # ax.scatter(orientation_points[:, 0], orientation_points[:, 1], orientation_points[:, 2])
+    # plt.show()
 
-    q1 = rotation_matrix_to_quaternion(R1)
-    q2 = rotation_matrix_to_quaternion(R2)
+    # # Test rotation computations
+    # R1 = [[0, -1, 0],
+    #     [1, 0, 0],
+    #     [0, 0, 1]]
 
-    print(quaternion_angular_distance(q1, q2))
+    # R2 = [[1, 0, 0],
+    #     [0, 1, 0],
+    #     [0, 0, 1]]
+
+    # q1 = rotation_matrix_to_quaternion(R1)
+    # q2 = rotation_matrix_to_quaternion(R2)
+
+    # print(quaternion_angular_distance(q1, q2))
     
